@@ -1,36 +1,152 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🕵️ Deepfake Detector — Frontend
 
-## Getting Started
+> A minimal Next.js 16 interface for uploading images, getting real/fake verdicts, and submitting corrections — backed by the Deepfake Detection API.
 
-First, run the development server:
+---
+
+## What It Does
+
+This is the client for the Deepfake Detector API. Users can:
+
+- **Upload** an image (drag-and-drop or click-to-browse)
+- **Get a verdict** — Real or Fake — with a confidence score
+- **Submit feedback** to correct wrong predictions and improve the vector database over time
+
+---
+
+## Tech Stack
+
+| Layer | Choice |
+|-------|--------|
+| Framework | Next.js 16 (App Router) |
+| Language | TypeScript 5 |
+| Styling | Tailwind CSS v4 + `tw-animate-css` |
+| UI Primitives | Radix UI Dialog, Radix UI Slot |
+| Icons | lucide-react |
+| Utilities | clsx, tailwind-merge, class-variance-authority |
+
+No external state library, no form library — intentionally lean.
+
+---
+
+## Project Structure
+
+```
+my-app/
+├── app/
+│   ├── page.tsx               # Home — upload form + result display
+│   ├── layout.tsx
+│   └── globals.css
+├── components/
+│   ├── upload-zone.tsx        # Image drag-and-drop / file picker
+│   ├── result-card.tsx        # Verdict display (Real / Fake + confidence bar)
+│   ├── feedback-dialog.tsx    # Radix Dialog — submit a correction
+│   └── ui/                    # Shared button, badge, card primitives
+├── lib/
+│   └── api.ts                 # Typed wrappers around /predict and /feedback
+├── .env.local
+└── package.json
+```
+
+---
+
+## How It Connects to the Backend
+
+```
+User drops image
+      │
+      ▼
+POST /predict
+      │
+      ▼
+{ isAuthentic, confidence, embedding }
+      │
+      ├── Show verdict card (Real / Fake)
+      └── Show confidence score
+              │
+              ▼ (user clicks "Wrong? Correct it")
+         Feedback Dialog
+              │
+              ▼
+POST /feedback  { embedding, label }
+              │
+              ▼
+      { status: "completed" }
+```
+
+The `embedding` returned by `/predict` is held in local state and passed directly to `/feedback` — no re-upload needed.
+
+---
+
+## Setup
+
+### Prerequisites
+
+- Node.js 20+
+- The [Deepfake Detector Python backend](../backend/README.md) running on port 8000
+
+### Install
+
+```bash
+npm install
+```
+
+### Environment Variables
+
+Create a `.env.local` file:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
+
+### Run
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+App runs at `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Scripts
 
-## Learn More
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Dev server with hot reload |
+| `npm run build` | Production build |
+| `npm run start` | Serve the production build |
+| `npm run lint` | Run ESLint |
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## API Integration
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Two calls, defined in `lib/api.ts`:
 
-## Deploy on Vercel
+```ts
+// Classify an image
+POST /predict
+  body: FormData { file: File }
+  → { isAuthentic: boolean, confidence: number, embedding: number[] }
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+// Submit a correction
+POST /feedback
+  body: { embedding: number[], label: 0 | 1 }
+  → { status: string }
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The backend runs at `NEXT_PUBLIC_API_URL` (defaults to `http://localhost:8000`).
+
+---
+
+## Known Limitations & Future Work
+
+- **No auth** — any user can submit feedback and influence the vector database
+- **Embedding held in memory only** — refreshing the page after a prediction loses the ability to give feedback
+- **No batch upload** — one image at a time
+- **CORS** — backend allows `http://localhost:3000` only; update `allow_origins` on the backend when deploying
+
+---
+
+*Next.js 16 · React 19 · TypeScript 5 · Tailwind v4 · Radix UI*
