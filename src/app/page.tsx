@@ -6,7 +6,7 @@ import { AnalysisResult } from "@/components/analysis-result";
 import { Button } from "@/components/ui/button";
 import { Shield, Zap } from "lucide-react";
 import { FeedbackDialog } from "@/components/feedback-dialog";
-
+oasdpoaskdpasksdpo
 export default function Home() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [result, setResult] = useState<{
